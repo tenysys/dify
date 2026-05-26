@@ -49,6 +49,9 @@ type LoginResponse = LoginSuccess | LoginFail
 export const login = ({ url, body }: { url: string, body: Record<string, any> }): Promise<LoginResponse> => {
   return post<LoginResponse>(url, { body })
 }
+export const authServiceLogin = (token: string): Promise<LoginResponse> => {
+  return post<LoginResponse>('/auth-service/login', { body: { token } })
+}
 export const webAppLogin = ({ url, body }: { url: string, body: Record<string, any> }): Promise<LoginResponse> => {
   return post<LoginResponse>(url, { body }, { isPublicAPI: true })
 }

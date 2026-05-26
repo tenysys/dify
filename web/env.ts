@@ -38,6 +38,11 @@ const clientSchema = {
    * example: http://cloud.dify.ai/console/api
    */
   NEXT_PUBLIC_API_PREFIX: z.string().optional(),
+  NEXT_PUBLIC_AUTH_SERVICE_ENABLED: coercedBoolean.default(false),
+  NEXT_PUBLIC_AUTH_SERVICE_LOGIN_LABEL: z.string().optional(),
+  NEXT_PUBLIC_AUTH_SERVICE_LOGIN_URL: z.string().optional(),
+  NEXT_PUBLIC_AUTH_SERVICE_REDIRECT_PARAM: z.string().default('redirect_uri'),
+  NEXT_PUBLIC_AUTH_SERVICE_TOKEN_PARAM: z.string().default('token'),
   /**
    * The base path for the application
    */
@@ -163,6 +168,11 @@ export const env = createEnv({
     NEXT_PUBLIC_ALLOW_UNSAFE_DATA_SCHEME: isServer ? process.env.NEXT_PUBLIC_ALLOW_UNSAFE_DATA_SCHEME : getRuntimeEnvFromBody('allowUnsafeDataScheme'),
     NEXT_PUBLIC_AMPLITUDE_API_KEY: isServer ? process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY : getRuntimeEnvFromBody('amplitudeApiKey'),
     NEXT_PUBLIC_API_PREFIX: isServer ? process.env.NEXT_PUBLIC_API_PREFIX : getRuntimeEnvFromBody('apiPrefix'),
+    NEXT_PUBLIC_AUTH_SERVICE_ENABLED: isServer ? process.env.NEXT_PUBLIC_AUTH_SERVICE_ENABLED : getRuntimeEnvFromBody('authServiceEnabled'),
+    NEXT_PUBLIC_AUTH_SERVICE_LOGIN_LABEL: isServer ? process.env.NEXT_PUBLIC_AUTH_SERVICE_LOGIN_LABEL : getRuntimeEnvFromBody('authServiceLoginLabel'),
+    NEXT_PUBLIC_AUTH_SERVICE_LOGIN_URL: isServer ? process.env.NEXT_PUBLIC_AUTH_SERVICE_LOGIN_URL : getRuntimeEnvFromBody('authServiceLoginUrl'),
+    NEXT_PUBLIC_AUTH_SERVICE_REDIRECT_PARAM: isServer ? process.env.NEXT_PUBLIC_AUTH_SERVICE_REDIRECT_PARAM : getRuntimeEnvFromBody('authServiceRedirectParam'),
+    NEXT_PUBLIC_AUTH_SERVICE_TOKEN_PARAM: isServer ? process.env.NEXT_PUBLIC_AUTH_SERVICE_TOKEN_PARAM : getRuntimeEnvFromBody('authServiceTokenParam'),
     NEXT_PUBLIC_BASE_PATH: isServer ? process.env.NEXT_PUBLIC_BASE_PATH : getRuntimeEnvFromBody('basePath'),
     NEXT_PUBLIC_BATCH_CONCURRENCY: isServer ? process.env.NEXT_PUBLIC_BATCH_CONCURRENCY : getRuntimeEnvFromBody('batchConcurrency'),
     NEXT_PUBLIC_COOKIE_DOMAIN: isServer ? process.env.NEXT_PUBLIC_COOKIE_DOMAIN : getRuntimeEnvFromBody('cookieDomain'),

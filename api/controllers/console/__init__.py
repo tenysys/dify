@@ -76,6 +76,7 @@ from .app import (
 # Import auth controllers
 from .auth import (
     activate,
+    auth_service,
     data_source_bearer_auth,
     data_source_oauth,
     email_register,
@@ -153,6 +154,7 @@ __all__ = [
     "apikey",
     "app",
     "audio",
+    "auth_service",
     "banner",
     "billing",
     "bp",

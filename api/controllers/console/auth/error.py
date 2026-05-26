@@ -83,6 +83,18 @@ class AuthenticationFailedError(BaseHTTPException):
     code = 401
 
 
+class AuthServiceAuthenticationFailedError(BaseHTTPException):
+    error_code = "auth_service_authentication_failed"
+    description = "Invalid or expired auth-service token."
+    code = 401
+
+
+class AuthServiceConfigurationError(BaseHTTPException):
+    error_code = "auth_service_configuration_error"
+    description = "auth-service login is not configured correctly."
+    code = 500
+
+
 class EmailPasswordLoginLimitError(BaseHTTPException):
     error_code = "email_code_login_limit"
     description = "Too many incorrect password attempts. Please try again later."

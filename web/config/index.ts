@@ -19,6 +19,23 @@ export const API_PREFIX = getStringConfig(
   env.NEXT_PUBLIC_API_PREFIX,
   'http://localhost:5001/console/api',
 )
+export const AUTH_SERVICE_ENABLED = env.NEXT_PUBLIC_AUTH_SERVICE_ENABLED
+export const AUTH_SERVICE_LOGIN_LABEL = getStringConfig(
+  env.NEXT_PUBLIC_AUTH_SERVICE_LOGIN_LABEL,
+  'Sign in with Auth Service',
+)
+export const AUTH_SERVICE_LOGIN_URL = getStringConfig(
+  env.NEXT_PUBLIC_AUTH_SERVICE_LOGIN_URL,
+  '',
+)
+export const AUTH_SERVICE_REDIRECT_PARAM = getStringConfig(
+  env.NEXT_PUBLIC_AUTH_SERVICE_REDIRECT_PARAM,
+  'redirect_uri',
+)
+export const AUTH_SERVICE_TOKEN_PARAM = getStringConfig(
+  env.NEXT_PUBLIC_AUTH_SERVICE_TOKEN_PARAM,
+  'token',
+)
 export const PUBLIC_API_PREFIX = getStringConfig(
   env.NEXT_PUBLIC_PUBLIC_API_PREFIX,
   'http://localhost:5001/api',

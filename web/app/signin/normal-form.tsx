@@ -5,7 +5,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { IS_CE_EDITION } from '@/config'
+import { AUTH_SERVICE_ENABLED, AUTH_SERVICE_LOGIN_URL, IS_CE_EDITION } from '@/config'
 import Link from '@/next/link'
 import { useRouter, useSearchParams } from '@/next/navigation'
 import { invitationCheck } from '@/service/common'
@@ -13,6 +13,7 @@ import { systemFeaturesQueryOptions } from '@/service/system-features'
 import { isLegacyBase401, userProfileQueryOptions } from '@/service/use-common'
 import { LicenseStatus } from '@/types/feature'
 import Loading from '../components/base/loading'
+import AuthServiceAuth from './components/auth-service-auth'
 import MailAndCodeAuth from './components/mail-and-code-auth'
 import MailAndPasswordAuth from './components/mail-and-password-auth'
 import SocialAuth from './components/social-auth'
@@ -42,6 +43,7 @@ const NormalForm = () => {
   const [showORLine, setShowORLine] = useState(false)
   const [allMethodsAreDisabled, setAllMethodsAreDisabled] = useState(false)
   const [workspaceName, setWorkSpaceName] = useState('')
+  const showAuthServiceLogin = AUTH_SERVICE_ENABLED && !!AUTH_SERVICE_LOGIN_URL
 
   const isInviteLink = Boolean(invite_token && invite_token !== 'null')
 
@@ -57,8 +59,8 @@ const NormalForm = () => {
       if (message) {
         toast.error(message)
       }
-      setAllMethodsAreDisabled(!systemFeatures.enable_social_oauth_login && !systemFeatures.enable_email_code_login && !systemFeatures.enable_email_password_login && !systemFeatures.sso_enforced_for_signin)
-      setShowORLine((systemFeatures.enable_social_oauth_login || systemFeatures.sso_enforced_for_signin) && (systemFeatures.enable_email_code_login || systemFeatures.enable_email_password_login))
+      setAllMethodsAreDisabled(!systemFeatures.enable_social_oauth_login && !systemFeatures.enable_email_code_login && !systemFeatures.enable_email_password_login && !systemFeatures.sso_enforced_for_signin && !showAuthServiceLogin)
+      setShowORLine((systemFeatures.enable_social_oauth_login || systemFeatures.sso_enforced_for_signin || showAuthServiceLogin) && (systemFeatures.enable_email_code_login || systemFeatures.enable_email_password_login))
       updateAuthType(systemFeatures.enable_email_password_login ? 'password' : 'code')
       if (isInviteLink) {
         const checkRes = await invitationCheck({
@@ -75,7 +77,7 @@ const NormalForm = () => {
       setAllMethodsAreDisabled(true)
     }
     finally { setInitCheckLoading(false) }
-  }, [isLoggedIn, message, router, invite_token, isInviteLink, systemFeatures])
+  }, [isLoggedIn, message, router, invite_token, isInviteLink, showAuthServiceLogin, systemFeatures])
   useEffect(() => {
     init()
   }, [init])
@@ -170,6 +172,7 @@ const NormalForm = () => {
         <div className="relative">
           <div className="mt-6 flex flex-col gap-3">
             {systemFeatures.enable_social_oauth_login && <SocialAuth />}
+            {showAuthServiceLogin && <AuthServiceAuth />}
             {systemFeatures.sso_enforced_for_signin && (
               <div className="w-full">
                 <SSOAuth protocol={systemFeatures.sso_enforced_for_signin_protocol} />
