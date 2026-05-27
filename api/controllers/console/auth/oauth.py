@@ -15,8 +15,11 @@ from libs.helper import extract_remote_ip
 from libs.helper import timezone as validate_timezone_string
 from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, decode_oauth_state
 from libs.token import (
+    set_access_token_to_header,
     set_access_token_to_cookie,
+    set_csrf_token_to_header,
     set_csrf_token_to_cookie,
+    set_refresh_token_to_header,
     set_refresh_token_to_cookie,
 )
 from models import Account, AccountStatus
@@ -205,6 +208,9 @@ class OAuthCallback(Resource):
         set_access_token_to_cookie(request, response, token_pair.access_token)
         set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
         set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
+        set_access_token_to_header(response, token_pair.access_token)
+        set_refresh_token_to_header(response, token_pair.refresh_token)
+        set_csrf_token_to_header(response, token_pair.csrf_token)
         return response
 
 

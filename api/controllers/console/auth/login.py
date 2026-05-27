@@ -42,8 +42,11 @@ from libs.token import (
     clear_csrf_token_from_cookie,
     clear_refresh_token_from_cookie,
     extract_refresh_token,
+    set_access_token_to_header,
     set_access_token_to_cookie,
+    set_csrf_token_to_header,
     set_csrf_token_to_cookie,
+    set_refresh_token_to_header,
     set_refresh_token_to_cookie,
 )
 from services.account_service import AccountService, InvitationDetailDict, RegisterService, TenantService
@@ -54,6 +57,26 @@ from services.errors.workspace import WorkSpaceNotAllowedCreateError, Workspaces
 from services.feature_service import FeatureService
 
 logger = logging.getLogger(__name__)
+
+
+def _build_auth_success_response(token_pair, *, result: str = "success"):
+    response = make_response(
+        {
+            "result": result,
+            "data": {
+                "access_token": token_pair.access_token,
+                "refresh_token": token_pair.refresh_token,
+                "csrf_token": token_pair.csrf_token,
+            },
+        }
+    )
+    set_access_token_to_cookie(request, response, token_pair.access_token)
+    set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
+    set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
+    set_access_token_to_header(response, token_pair.access_token)
+    set_refresh_token_to_header(response, token_pair.refresh_token)
+    set_csrf_token_to_header(response, token_pair.csrf_token)
+    return response
 
 
 class LoginPayload(LoginPayloadBase):
@@ -157,15 +180,7 @@ class LoginApi(Resource):
 
         token_pair = AccountService.login(account=account, ip_address=extract_remote_ip(request))
         AccountService.reset_login_error_rate_limit(normalized_email)
-
-        # Create response with cookies instead of returning tokens in body
-        response = make_response({"result": "success"})
-
-        set_access_token_to_cookie(request, response, token_pair.access_token)
-        set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
-        set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
-
-        return response
+        return _build_auth_success_response(token_pair)
 
 
 @console_ns.route("/logout")
@@ -256,7 +271,7 @@ class EmailCodeLoginSendEmailApi(Resource):
 class EmailCodeLoginApi(Resource):
     @setup_required
     @console_ns.expect(console_ns.models[EmailCodeLoginPayload.__name__])
-    @console_ns.response(200, "Success", console_ns.models[SimpleResultResponse.__name__])
+    @console_ns.response(200, "Success", console_ns.models[SimpleResultOptionalDataResponse.__name__])
     @decrypt_code_field
     def post(self):
         args = EmailCodeLoginPayload.model_validate(console_ns.payload)
@@ -320,22 +335,14 @@ class EmailCodeLoginApi(Resource):
                 raise WorkspacesLimitExceeded()
         token_pair = AccountService.login(account, ip_address=extract_remote_ip(request))
         AccountService.reset_login_error_rate_limit(user_email)
-
-        # Create response with cookies instead of returning tokens in body
-        response = make_response({"result": "success"})
-
-        set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
-        # Set HTTP-only secure cookies for tokens
-        set_access_token_to_cookie(request, response, token_pair.access_token)
-        set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
-        return response
+        return _build_auth_success_response(token_pair)
 
 
 @console_ns.route("/refresh-token")
 class RefreshTokenApi(Resource):
-    @console_ns.response(200, "Success", console_ns.models[SimpleResultResponse.__name__])
+    @console_ns.response(200, "Success", console_ns.models[SimpleResultOptionalDataResponse.__name__])
     def post(self):
-        # Get refresh token from cookie instead of request body
+        # Accept refresh token from header first, with cookie fallback for compatibility.
         refresh_token = extract_refresh_token(request)
 
         if not refresh_token:
@@ -343,15 +350,7 @@ class RefreshTokenApi(Resource):
 
         try:
             new_token_pair = AccountService.refresh_token(refresh_token)
-
-            # Create response with new cookies
-            response = make_response({"result": "success"})
-
-            # Update cookies with new tokens
-            set_csrf_token_to_cookie(request, response, new_token_pair.csrf_token)
-            set_access_token_to_cookie(request, response, new_token_pair.access_token)
-            set_refresh_token_to_cookie(request, response, new_token_pair.refresh_token)
-            return response
+            return _build_auth_success_response(new_token_pair)
         except Exception as e:
             return {"result": "fail", "message": str(e)}, 401
 

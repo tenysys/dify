@@ -1,7 +1,7 @@
 import logging
 import re
 
-from flask import make_response, request
+from flask import request
 from flask_restx import Resource
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from controllers.console.auth.error import (
     AuthServiceAuthenticationFailedError,
     AuthServiceConfigurationError as AuthServiceConfigurationHttpError,
 )
+from controllers.console.auth.login import _build_auth_success_response
 from controllers.console.wraps import setup_required
 from extensions.ext_database import db
 from libs.auth_service import (
@@ -23,11 +24,6 @@ from libs.auth_service import (
     AuthServiceError,
 )
 from libs.helper import extract_remote_ip
-from libs.token import (
-    set_access_token_to_cookie,
-    set_csrf_token_to_cookie,
-    set_refresh_token_to_cookie,
-)
 from models.account import Account, AccountStatus, Tenant, TenantAccountRole, TenantStatus
 from services.account_service import AccountService, RegisterService, TenantService
 
@@ -74,11 +70,7 @@ class AuthServiceLoginApi(Resource):
         _ensure_workspace_membership(account, tenant)
 
         token_pair = AccountService.login(account=account, ip_address=extract_remote_ip(request))
-        response = make_response({"result": "success"})
-        set_access_token_to_cookie(request, response, token_pair.access_token)
-        set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
-        set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
-        return response
+        return _build_auth_success_response(token_pair)
 
 
 def _resolve_external_user_id(claims: dict[str, object], fallback_user_id: str) -> str:

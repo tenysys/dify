@@ -14,6 +14,7 @@ import pytest
 from flask import Flask
 from flask_restx import Api
 
+from constants import HEADER_NAME_ACCESS_TOKEN, HEADER_NAME_CSRF_TOKEN, HEADER_NAME_REFRESH_TOKEN
 from controllers.console.auth.login import RefreshTokenApi
 
 
@@ -72,6 +73,12 @@ class TestRefreshTokenApi:
         mock_extract_token.assert_called_once()
         mock_refresh_token.assert_called_once_with("valid_refresh_token")
         assert response.json["result"] == "success"
+        assert response.json["data"]["access_token"] == "new_access_token"
+        assert response.json["data"]["refresh_token"] == "new_refresh_token"
+        assert response.json["data"]["csrf_token"] == "new_csrf_token"
+        assert response.headers[HEADER_NAME_ACCESS_TOKEN] == "Bearer new_access_token"
+        assert response.headers[HEADER_NAME_REFRESH_TOKEN] == "new_refresh_token"
+        assert response.headers[HEADER_NAME_CSRF_TOKEN] == "new_csrf_token"
 
     @patch("controllers.console.auth.login.extract_refresh_token", autospec=True)
     def test_refresh_fails_without_token(self, mock_extract_token, app: Flask):

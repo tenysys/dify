@@ -16,6 +16,7 @@ from flask import Flask
 from flask_restx import Api
 from werkzeug.exceptions import Unauthorized
 
+from constants import HEADER_NAME_ACCESS_TOKEN, HEADER_NAME_CSRF_TOKEN, HEADER_NAME_REFRESH_TOKEN
 from controllers.console.auth.error import (
     AuthenticationFailedError,
     EmailPasswordLoginLimitError,
@@ -130,6 +131,12 @@ class TestLoginApi:
         mock_login.assert_called_once()
         mock_reset_rate_limit.assert_called_once_with("test@example.com")
         assert response.json["result"] == "success"
+        assert response.json["data"]["access_token"] == "mock_access_token"
+        assert response.json["data"]["refresh_token"] == "mock_refresh_token"
+        assert response.json["data"]["csrf_token"] == "mock_csrf_token"
+        assert response.headers[HEADER_NAME_ACCESS_TOKEN] == "Bearer mock_access_token"
+        assert response.headers[HEADER_NAME_REFRESH_TOKEN] == "mock_refresh_token"
+        assert response.headers[HEADER_NAME_CSRF_TOKEN] == "mock_csrf_token"
 
     @patch("controllers.console.wraps.db")
     @patch("controllers.console.auth.login.dify_config.BILLING_ENABLED", False)

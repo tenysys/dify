@@ -11,7 +11,6 @@ from werkzeug.local import LocalProxy
 from configs import dify_config
 from dify_app import DifyApp
 from extensions.ext_login import DifyLoginManager
-from libs.token import check_csrf_token
 from models import Account
 
 if TYPE_CHECKING:
@@ -94,9 +93,6 @@ def login_required[**P, R](func: Callable[P, R]) -> Callable[P, R | Response]:
             unauthorized_response: Response = _get_login_manager().unauthorized()
             return unauthorized_response
         g._login_user = user
-        # we put csrf validation here for less conflicts
-        # TODO: maybe find a better place for it.
-        check_csrf_token(request, user.id)
         return current_app.ensure_sync(func)(*args, **kwargs)
 
     return decorated_view

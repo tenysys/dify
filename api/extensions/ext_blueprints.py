@@ -1,14 +1,27 @@
 from configs import dify_config
-from constants import HEADER_NAME_APP_CODE, HEADER_NAME_CSRF_TOKEN, HEADER_NAME_PASSPORT
+from constants import (
+    HEADER_NAME_ACCESS_TOKEN,
+    HEADER_NAME_APP_CODE,
+    HEADER_NAME_CSRF_TOKEN,
+    HEADER_NAME_PASSPORT,
+    HEADER_NAME_REFRESH_TOKEN,
+)
 from dify_app import DifyApp
 
 BASE_CORS_HEADERS: tuple[str, ...] = ("Content-Type", HEADER_NAME_APP_CODE, HEADER_NAME_PASSPORT)
-SERVICE_API_HEADERS: tuple[str, ...] = (*BASE_CORS_HEADERS, "Authorization")
-AUTHENTICATED_HEADERS: tuple[str, ...] = (*SERVICE_API_HEADERS, HEADER_NAME_CSRF_TOKEN)
+SERVICE_API_HEADERS: tuple[str, ...] = (*BASE_CORS_HEADERS, HEADER_NAME_ACCESS_TOKEN)
+AUTHENTICATED_HEADERS: tuple[str, ...] = (*SERVICE_API_HEADERS, HEADER_NAME_CSRF_TOKEN, HEADER_NAME_REFRESH_TOKEN)
 FILES_HEADERS: tuple[str, ...] = (*BASE_CORS_HEADERS, HEADER_NAME_CSRF_TOKEN)
 EMBED_HEADERS: tuple[str, ...] = ("Content-Type", HEADER_NAME_APP_CODE)
-EXPOSED_HEADERS: tuple[str, ...] = ("X-Version", "X-Env", "X-Trace-Id")
-OPENAPI_HEADERS: tuple[str, ...] = ("Authorization", "Content-Type", HEADER_NAME_CSRF_TOKEN)
+EXPOSED_HEADERS: tuple[str, ...] = (
+    "X-Version",
+    "X-Env",
+    "X-Trace-Id",
+    HEADER_NAME_ACCESS_TOKEN,
+    HEADER_NAME_CSRF_TOKEN,
+    HEADER_NAME_REFRESH_TOKEN,
+)
+OPENAPI_HEADERS: tuple[str, ...] = (HEADER_NAME_ACCESS_TOKEN, "Content-Type", HEADER_NAME_CSRF_TOKEN)
 OPENAPI_MAX_AGE_SECONDS: int = 600
 
 
@@ -113,7 +126,7 @@ def init_app(app: DifyApp):
     # Register trigger blueprint with CORS for webhook calls
     _apply_cors_once(
         trigger_bp,
-        allow_headers=["Content-Type", "Authorization", "X-App-Code"],
+        allow_headers=["Content-Type", HEADER_NAME_ACCESS_TOKEN, "X-App-Code"],
         methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH", "HEAD"],
         expose_headers=list(EXPOSED_HEADERS),
     )

@@ -13,8 +13,10 @@ from constants import (
     COOKIE_NAME_PASSPORT,
     COOKIE_NAME_REFRESH_TOKEN,
     COOKIE_NAME_WEBAPP_ACCESS_TOKEN,
+    HEADER_NAME_ACCESS_TOKEN,
     HEADER_NAME_CSRF_TOKEN,
     HEADER_NAME_PASSPORT,
+    HEADER_NAME_REFRESH_TOKEN,
 )
 from libs.passport import PassportService
 
@@ -51,7 +53,7 @@ def _real_cookie_name(cookie_name: str) -> str:
 
 
 def _try_extract_from_header(request: Request) -> str | None:
-    auth_header = request.headers.get("Authorization")
+    auth_header = request.headers.get(HEADER_NAME_ACCESS_TOKEN)
     if not auth_header or " " not in auth_header:
         return None
     auth_scheme, auth_token = auth_header.split(None, 1)
@@ -61,7 +63,9 @@ def _try_extract_from_header(request: Request) -> str | None:
 
 
 def extract_refresh_token(request: Request) -> str | None:
-    return request.cookies.get(_real_cookie_name(COOKIE_NAME_REFRESH_TOKEN))
+    return request.headers.get(HEADER_NAME_REFRESH_TOKEN) or request.cookies.get(
+        _real_cookie_name(COOKIE_NAME_REFRESH_TOKEN)
+    )
 
 
 def extract_csrf_token(request: Request) -> str | None:
@@ -130,6 +134,18 @@ def set_csrf_token_to_cookie(request: Request, response: Response, token: str):
         max_age=int(60 * dify_config.ACCESS_TOKEN_EXPIRE_MINUTES),
         path="/",
     )
+
+
+def set_access_token_to_header(response: Response, token: str) -> None:
+    response.headers[HEADER_NAME_ACCESS_TOKEN] = f"Bearer {token}"
+
+
+def set_refresh_token_to_header(response: Response, token: str) -> None:
+    response.headers[HEADER_NAME_REFRESH_TOKEN] = token
+
+
+def set_csrf_token_to_header(response: Response, token: str) -> None:
+    response.headers[HEADER_NAME_CSRF_TOKEN] = token
 
 
 def _clear_cookie(

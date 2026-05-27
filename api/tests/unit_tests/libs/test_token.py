@@ -5,9 +5,9 @@ import pytest
 from flask import Request
 from werkzeug.wrappers import Response
 
-from constants import COOKIE_NAME_ACCESS_TOKEN, COOKIE_NAME_WEBAPP_ACCESS_TOKEN
+from constants import COOKIE_NAME_ACCESS_TOKEN, COOKIE_NAME_REFRESH_TOKEN, COOKIE_NAME_WEBAPP_ACCESS_TOKEN, HEADER_NAME_REFRESH_TOKEN
 from libs import token
-from libs.token import extract_access_token, extract_webapp_access_token, set_csrf_token_to_cookie
+from libs.token import extract_access_token, extract_refresh_token, extract_webapp_access_token, set_csrf_token_to_cookie
 
 
 class MockRequest:
@@ -31,6 +31,28 @@ def test_extract_access_token():
     for request, expected_console, expected_webapp in test_cases:
         assert extract_access_token(request) == expected_console
         assert extract_webapp_access_token(request) == expected_webapp
+
+
+def test_extract_refresh_token_prefers_header():
+    def _mock_request(headers: dict[str, str], cookies: dict[str, str], args: dict[str, str]) -> Request:
+        return cast(Request, MockRequest(headers, cookies, args))
+
+    request = _mock_request(
+        {HEADER_NAME_REFRESH_TOKEN: "header-refresh"},
+        {COOKIE_NAME_REFRESH_TOKEN: "cookie-refresh"},
+        {},
+    )
+
+    assert extract_refresh_token(request) == "header-refresh"
+
+
+def test_extract_refresh_token_falls_back_to_cookie():
+    def _mock_request(headers: dict[str, str], cookies: dict[str, str], args: dict[str, str]) -> Request:
+        return cast(Request, MockRequest(headers, cookies, args))
+
+    request = _mock_request({}, {COOKIE_NAME_REFRESH_TOKEN: "cookie-refresh"}, {})
+
+    assert extract_refresh_token(request) == "cookie-refresh"
 
 
 def test_real_cookie_name_uses_host_prefix_without_domain(monkeypatch: pytest.MonkeyPatch):
