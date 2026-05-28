@@ -1,9 +1,9 @@
 import type { AfterResponseHook, BeforeRequestHook, Hooks } from 'ky'
 import type { IOtherOptions } from './base'
 import { toast } from '@langgenius/dify-ui/toast'
-import Cookies from 'js-cookie'
 import ky, { HTTPError } from 'ky'
-import { API_PREFIX, APP_VERSION, CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IS_MARKETPLACE, MARKETPLACE_API_PREFIX, PASSPORT_HEADER_NAME, PUBLIC_API_PREFIX, WEB_APP_SHARE_CODE_HEADER_NAME } from '@/config'
+import { API_PREFIX, APP_VERSION, CSRF_HEADER_NAME, IS_MARKETPLACE, MARKETPLACE_API_PREFIX, PASSPORT_HEADER_NAME, PUBLIC_API_PREFIX, REFRESH_TOKEN_HEADER_NAME, WEB_APP_SHARE_CODE_HEADER_NAME } from '@/config'
+import { getConsoleAccessToken, getConsoleCsrfToken, getConsoleRefreshToken } from './console-auth'
 import { getWebAppAccessToken, getWebAppPassport } from './webapp-auth'
 
 const TIME_OUT = 100000
@@ -180,8 +180,26 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
   }
 
   const fetchPathname = base + (url.startsWith('/') ? url : `/${url}`)
-  if (!isMarketplaceAPI)
-    headers.set(CSRF_HEADER_NAME, Cookies.get(CSRF_COOKIE_NAME()) || '')
+  if (!isMarketplaceAPI && !isPublicAPI) {
+    const accessToken = getConsoleAccessToken()
+    const csrfToken = getConsoleCsrfToken()
+    const refreshToken = getConsoleRefreshToken()
+
+    if (accessToken)
+      headers.set('Authorization', `Bearer ${accessToken}`)
+    else
+      headers.delete('Authorization')
+
+    if (csrfToken)
+      headers.set(CSRF_HEADER_NAME, csrfToken)
+    else
+      headers.delete(CSRF_HEADER_NAME)
+
+    if (refreshToken)
+      headers.set(REFRESH_TOKEN_HEADER_NAME, refreshToken)
+    else
+      headers.delete(REFRESH_TOKEN_HEADER_NAME)
+  }
 
   if (deleteContentType)
     headers.delete('Content-Type')
@@ -257,18 +275,21 @@ async function base<T>(url: string, options: FetchOptionType = {}, otherOptions:
 export function postWithKeepalive(url: string, body: Record<string, unknown>): void {
   const headers: Record<string, string> = {
     'Content-Type': ContentType.json,
-    [CSRF_HEADER_NAME]: Cookies.get(CSRF_COOKIE_NAME()) || '',
   }
 
-  // Add Authorization header if an access token is available
-  const accessToken = getWebAppAccessToken()
+  const accessToken = getConsoleAccessToken() || getWebAppAccessToken()
+  const csrfToken = getConsoleCsrfToken()
+  const refreshToken = getConsoleRefreshToken()
   if (accessToken)
     headers.Authorization = `Bearer ${accessToken}`
+  if (csrfToken)
+    headers[CSRF_HEADER_NAME] = csrfToken
+  if (refreshToken)
+    headers[REFRESH_TOKEN_HEADER_NAME] = refreshToken
 
   globalThis.fetch(url, {
     method: 'POST',
     keepalive: true,
-    credentials: 'include',
     headers,
     body: JSON.stringify(body),
   }).catch(() => {})

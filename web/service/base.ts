@@ -28,11 +28,11 @@ import type {
   WorkflowStartedResponse,
 } from '@/types/workflow'
 import { toast } from '@langgenius/dify-ui/toast'
-import Cookies from 'js-cookie'
-import { API_PREFIX, CSRF_COOKIE_NAME, CSRF_HEADER_NAME, IS_CE_EDITION, PASSPORT_HEADER_NAME, PUBLIC_API_PREFIX, WEB_APP_SHARE_CODE_HEADER_NAME } from '@/config'
+import { API_PREFIX, CSRF_HEADER_NAME, IS_CE_EDITION, PASSPORT_HEADER_NAME, PUBLIC_API_PREFIX, REFRESH_TOKEN_HEADER_NAME, WEB_APP_SHARE_CODE_HEADER_NAME } from '@/config'
 import { asyncRunSafe } from '@/utils'
 import { basePath } from '@/utils/var'
 import { base, ContentType, getBaseOptions } from './fetch'
+import { clearConsoleAuthTokens, getConsoleAccessToken, getConsoleCsrfToken, getConsoleRefreshToken } from './console-auth'
 import { refreshAccessTokenOrReLogin } from './refresh-token'
 import { getWebAppPassport } from './webapp-auth'
 
@@ -416,7 +416,9 @@ export const upload = async (options: UploadOptions, isPublicAPI?: boolean, url?
     method: 'POST',
     url: (url ? `${urlPrefix}${url}` : `${urlPrefix}/files/upload`) + (searchParams || ''),
     headers: {
-      [CSRF_HEADER_NAME]: Cookies.get(CSRF_COOKIE_NAME()) || '',
+      Authorization: getConsoleAccessToken() ? `Bearer ${getConsoleAccessToken()}` : '',
+      [CSRF_HEADER_NAME]: getConsoleCsrfToken() || '',
+      [REFRESH_TOKEN_HEADER_NAME]: getConsoleRefreshToken() || '',
       [PASSPORT_HEADER_NAME]: getWebAppPassport(shareCode!),
       [WEB_APP_SHARE_CODE_HEADER_NAME]: shareCode,
     },
@@ -500,7 +502,9 @@ export const ssePost = async (
     method: 'POST',
     signal: abortController.signal,
     headers: new Headers({
-      [CSRF_HEADER_NAME]: Cookies.get(CSRF_COOKIE_NAME())! || '',
+      Authorization: getConsoleAccessToken() ? `Bearer ${getConsoleAccessToken()}` : '',
+      [CSRF_HEADER_NAME]: getConsoleCsrfToken() || '',
+      [REFRESH_TOKEN_HEADER_NAME]: getConsoleRefreshToken() || '',
       [WEB_APP_SHARE_CODE_HEADER_NAME]: shareCode,
       [PASSPORT_HEADER_NAME]: getWebAppPassport(shareCode!),
     }),
@@ -651,7 +655,9 @@ export const sseGet = async (
   const options = Object.assign({}, baseOptions, {
     signal: abortController.signal,
     headers: new Headers({
-      [CSRF_HEADER_NAME]: Cookies.get(CSRF_COOKIE_NAME())! || '',
+      Authorization: getConsoleAccessToken() ? `Bearer ${getConsoleAccessToken()}` : '',
+      [CSRF_HEADER_NAME]: getConsoleCsrfToken() || '',
+      [REFRESH_TOKEN_HEADER_NAME]: getConsoleRefreshToken() || '',
       [WEB_APP_SHARE_CODE_HEADER_NAME]: shareCode,
       [PASSPORT_HEADER_NAME]: getWebAppPassport(shareCode!),
     }),
@@ -779,7 +785,7 @@ export const request = async<T>(url: string, options = {}, otherOptions?: IOther
         return Promise.reject(err)
       }
       if (code === 'unauthorized_and_force_logout') {
-        // Cookies will be cleared by the backend
+        clearConsoleAuthTokens()
         globalThis.location.reload()
         return Promise.reject(err)
       }
@@ -813,6 +819,7 @@ export const request = async<T>(url: string, options = {}, otherOptions?: IOther
       // the post-login flow lands on /apps instead of returning here.
       if (location.pathname === `${basePath}/device`)
         return Promise.reject(err)
+      clearConsoleAuthTokens()
       if (location.pathname !== `${basePath}/signin` || !IS_CE_EDITION) {
         jumpTo(buildSigninUrlWithRedirect())
         return Promise.reject(err)

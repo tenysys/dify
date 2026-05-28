@@ -23,6 +23,7 @@ import type { RETRIEVE_METHOD } from '@/types/app'
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { IS_DEV } from '@/config'
 import { get, post } from './base'
+import { clearConsoleAuthTokens } from './console-auth'
 
 /**
  * True iff `err` is a 401 Response thrown by `service/base.ts`.
@@ -238,6 +239,7 @@ export const useLogout = () => {
     mutationKey: [NAME_SPACE, 'logout'],
     mutationFn: () => post('/logout'),
     onSuccess: () => {
+      clearConsoleAuthTokens()
       // Drop all cached queries so the post-logout /signin probe doesn't read
       // the previous user's profile (the userProfile queryKey is shared with
       // the (commonLayout) tree, which keeps observing it during React's

@@ -16,11 +16,8 @@ from libs.helper import timezone as validate_timezone_string
 from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo, decode_oauth_state
 from libs.token import (
     set_access_token_to_header,
-    set_access_token_to_cookie,
     set_csrf_token_to_header,
-    set_csrf_token_to_cookie,
     set_refresh_token_to_header,
-    set_refresh_token_to_cookie,
 )
 from models import Account, AccountStatus
 from services.account_service import AccountService, RegisterService, TenantService
@@ -200,14 +197,14 @@ class OAuthCallback(Resource):
             ip_address=extract_remote_ip(request),
         )
 
-        base_url = dify_config.CONSOLE_WEB_URL
-        query_char = "&" if "?" in base_url else "?"
-        target_url = f"{base_url}{query_char}oauth_new_user={str(oauth_new_user).lower()}"
+        target_url = (
+            f"{dify_config.CONSOLE_WEB_URL}/signin/oauth"
+            f"?oauth_new_user={str(oauth_new_user).lower()}"
+            f"#access_token={urllib.parse.quote(token_pair.access_token)}"
+            f"&refresh_token={urllib.parse.quote(token_pair.refresh_token)}"
+            f"&csrf_token={urllib.parse.quote(token_pair.csrf_token)}"
+        )
         response = redirect(target_url)
-
-        set_access_token_to_cookie(request, response, token_pair.access_token)
-        set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
-        set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
         set_access_token_to_header(response, token_pair.access_token)
         set_refresh_token_to_header(response, token_pair.refresh_token)
         set_csrf_token_to_header(response, token_pair.csrf_token)

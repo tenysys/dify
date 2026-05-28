@@ -63,9 +63,7 @@ def _try_extract_from_header(request: Request) -> str | None:
 
 
 def extract_refresh_token(request: Request) -> str | None:
-    return request.headers.get(HEADER_NAME_REFRESH_TOKEN) or request.cookies.get(
-        _real_cookie_name(COOKIE_NAME_REFRESH_TOKEN)
-    )
+    return request.headers.get(HEADER_NAME_REFRESH_TOKEN)
 
 
 def extract_csrf_token(request: Request) -> str | None:
@@ -84,7 +82,7 @@ def extract_console_cookie_token(request: Request) -> str | None:
 
 
 def extract_access_token(request: Request) -> str | None:
-    return extract_console_cookie_token(request) or _try_extract_from_header(request)
+    return _try_extract_from_header(request)
 
 
 def extract_webapp_access_token(request: Request) -> str | None:
@@ -211,11 +209,6 @@ def check_csrf_token(request: Request, user_id: str):
             return
 
     csrf_token = extract_csrf_token(request)
-    csrf_token_from_cookie = extract_csrf_token_from_cookie(request)
-
-    if csrf_token != csrf_token_from_cookie:
-        _unauthorized()
-
     if not csrf_token:
         _unauthorized()
     try:

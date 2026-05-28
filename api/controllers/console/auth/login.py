@@ -43,11 +43,8 @@ from libs.token import (
     clear_refresh_token_from_cookie,
     extract_refresh_token,
     set_access_token_to_header,
-    set_access_token_to_cookie,
     set_csrf_token_to_header,
-    set_csrf_token_to_cookie,
     set_refresh_token_to_header,
-    set_refresh_token_to_cookie,
 )
 from services.account_service import AccountService, InvitationDetailDict, RegisterService, TenantService
 from services.billing_service import BillingService
@@ -70,9 +67,6 @@ def _build_auth_success_response(token_pair, *, result: str = "success"):
             },
         }
     )
-    set_access_token_to_cookie(request, response, token_pair.access_token)
-    set_refresh_token_to_cookie(request, response, token_pair.refresh_token)
-    set_csrf_token_to_cookie(request, response, token_pair.csrf_token)
     set_access_token_to_header(response, token_pair.access_token)
     set_refresh_token_to_header(response, token_pair.refresh_token)
     set_csrf_token_to_header(response, token_pair.csrf_token)

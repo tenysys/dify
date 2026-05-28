@@ -10,6 +10,7 @@ import {
 } from '@/config'
 import { useRouter, useSearchParams } from '@/next/navigation'
 import { authServiceLogin } from '@/service/common'
+import { storeConsoleAuthTokens } from '@/service/console-auth'
 import { resolvePostLoginRedirect } from '../utils/post-login-redirect'
 
 const getHashParams = () => {
@@ -63,6 +64,7 @@ export default function AuthServiceSigninPage() {
           setErrorMessage(result.data || 'Auth-service sign-in failed.')
           return
         }
+        storeConsoleAuthTokens(result.data)
 
         const preservedParams = getSanitizedParams(new URLSearchParams(searchParams.toString()))
         const inviteToken = preservedParams.get('invite_token')

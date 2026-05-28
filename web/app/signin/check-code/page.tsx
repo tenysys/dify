@@ -12,6 +12,7 @@ import { useLocale } from '@/context/i18n'
 
 import { useRouter, useSearchParams } from '@/next/navigation'
 import { emailLoginWithCode, sendEMailLoginCode } from '@/service/common'
+import { storeConsoleAuthTokens } from '@/service/console-auth'
 import { encryptVerificationCode } from '@/utils/encryption'
 import { getBrowserTimezone } from '@/utils/timezone'
 import { resolvePostLoginRedirect } from '../utils/post-login-redirect'
@@ -48,6 +49,7 @@ export default function CheckCode() {
         timezone: getBrowserTimezone(),
       })
       if (ret.result === 'success') {
+        storeConsoleAuthTokens(ret.data)
         // Track login success event
         trackEvent('user_login_success', {
           method: 'email_code',

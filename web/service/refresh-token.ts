@@ -1,5 +1,6 @@
 import { API_PREFIX } from '@/config'
 import { fetchWithRetry } from '@/utils'
+import { clearConsoleAuthTokens, getConsoleRefreshToken, storeConsoleAuthTokens } from './console-auth'
 
 const LOCAL_STORAGE_KEY = 'is_other_tab_refreshing'
 
@@ -39,6 +40,9 @@ async function getNewAccessToken(timeout: number): Promise<void> {
       globalThis.localStorage.setItem(LOCAL_STORAGE_KEY, '1')
       globalThis.localStorage.setItem('last_refresh_time', new Date().getTime().toString())
       globalThis.addEventListener('beforeunload', releaseRefreshLock)
+      const refreshToken = getConsoleRefreshToken()
+      if (!refreshToken)
+        return Promise.reject(new Error('No refresh token provided'))
 
       // Do not use baseFetch to refresh tokens.
       // If a 401 response occurs and baseFetch itself attempts to refresh the token,
@@ -47,11 +51,10 @@ async function getNewAccessToken(timeout: number): Promise<void> {
       // that does not call baseFetch and uses a single retry mechanism.
       const [error, ret] = await fetchWithRetry(globalThis.fetch(`${API_PREFIX}/refresh-token`, {
         method: 'POST',
-        credentials: 'include', // Important: include cookies in the request
         headers: {
           'Content-Type': 'application/json;utf-8',
+          'X-Refresh-Token': refreshToken,
         },
-        // No body needed - refresh token is in cookie
       }))
       if (error) {
         return Promise.reject(error)
@@ -59,11 +62,14 @@ async function getNewAccessToken(timeout: number): Promise<void> {
       else {
         if (ret.status === 401)
           return Promise.reject(ret)
+        const payload = await ret.json() as { data?: { access_token?: string, refresh_token?: string, csrf_token?: string } }
+        storeConsoleAuthTokens(payload.data)
       }
     }
   }
   catch (error) {
     console.error(error)
+    clearConsoleAuthTokens()
     return Promise.reject(error)
   }
   finally {
