@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from opendal.exceptions import PermissionDenied as OpenDALPermissionDenied
 import pytest
 from flask import Flask
 
@@ -107,4 +108,20 @@ class TestLoadTargetWorkspace:
             patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE", "normal"),
         ):
             with pytest.raises(AuthServiceConfigurationError, match="workspace id or name"):
+                _load_target_workspace()
+
+    @patch("controllers.console.auth.auth_service.TenantService.create_tenant")
+    @patch("controllers.console.auth.auth_service.db")
+    def test_load_target_workspace_raises_config_error_when_storage_path_is_not_writable(
+        self, mock_db, mock_create_tenant
+    ):
+        mock_db.session.scalar.return_value = None
+        mock_create_tenant.side_effect = OpenDALPermissionDenied("permission denied")
+
+        with (
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ID", None),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_NAME", "研发部门"),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE", "normal"),
+        ):
+            with pytest.raises(AuthServiceConfigurationError, match="storage path is not writable"):
                 _load_target_workspace()

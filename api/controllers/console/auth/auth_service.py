@@ -3,6 +3,7 @@ import re
 
 from flask import request
 from flask_restx import Resource
+from opendal.exceptions import PermissionDenied as OpenDALPermissionDenied
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from werkzeug.exceptions import Unauthorized
@@ -147,7 +148,12 @@ def _load_target_workspace() -> Tenant:
         return tenant
 
     logger.info("creating auth-service default workspace by name: %s", workspace_name)
-    tenant = TenantService.create_tenant(workspace_name, is_setup=True)
+    try:
+        tenant = TenantService.create_tenant(workspace_name, is_setup=True)
+    except OpenDALPermissionDenied as exc:
+        raise AuthServiceConfigurationHttpError(
+            "Failed to create the configured auth-service workspace because the storage path is not writable."
+        ) from exc
 
     return tenant
 
