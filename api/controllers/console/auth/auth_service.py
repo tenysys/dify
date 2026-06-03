@@ -121,19 +121,33 @@ def _resolve_account_name(user_name: str, normalized_email: str) -> str:
 
 def _load_target_workspace() -> Tenant:
     workspace_id = dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ID
+    workspace_name = dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_NAME
     workspace_role = dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE
-
-    if not workspace_id:
-        raise AuthServiceConfigurationHttpError("AUTH_SERVICE_DEFAULT_WORKSPACE_ID is not configured")
 
     if not TenantAccountRole.is_valid_role(workspace_role):
         raise AuthServiceConfigurationHttpError("AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE is invalid")
 
+    if workspace_id:
+        tenant = db.session.scalar(
+            select(Tenant).where(Tenant.id == workspace_id, Tenant.status == TenantStatus.NORMAL).limit(1)
+        )
+        if tenant is None:
+            raise AuthServiceConfigurationHttpError("Configured auth-service workspace does not exist")
+        return tenant
+
+    if not workspace_name:
+        raise AuthServiceConfigurationHttpError(
+            "AUTH_SERVICE_DEFAULT_WORKSPACE_ID or AUTH_SERVICE_DEFAULT_WORKSPACE_NAME must be configured"
+        )
+
     tenant = db.session.scalar(
-        select(Tenant).where(Tenant.id == workspace_id, Tenant.status == TenantStatus.NORMAL).limit(1)
+        select(Tenant).where(Tenant.name == workspace_name, Tenant.status == TenantStatus.NORMAL).limit(1)
     )
-    if tenant is None:
-        raise AuthServiceConfigurationHttpError("Configured auth-service workspace does not exist")
+    if tenant is not None:
+        return tenant
+
+    logger.info("creating auth-service default workspace by name: %s", workspace_name)
+    tenant = TenantService.create_tenant(workspace_name, is_setup=True)
 
     return tenant
 

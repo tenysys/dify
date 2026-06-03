@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 type JsonObject = dict[str, Any]
 
 JSON_OBJECT_ADAPTER: TypeAdapter[JsonObject] = TypeAdapter(JsonObject)
+AUTH_SERVICE_USER_INFO_REQUEST: JsonObject = {"body": {}, "clientId": "", "id": 0}
 
 _http_client: httpx.Client = get_pooled_http_client(
     "auth-service:default",
@@ -77,7 +78,7 @@ class AuthServiceClient:
             response = _http_client.post(
                 self._user_info_url,
                 headers={"Authorization": f"Bearer {token}"},
-                json={"id": "dify", "body": {}},
+                json=AUTH_SERVICE_USER_INFO_REQUEST,
                 timeout=self._timeout,
             )
             response.raise_for_status()

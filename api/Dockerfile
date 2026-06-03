@@ -99,9 +99,31 @@ ENV VIRTUAL_ENV=/app/api/.venv
 COPY --from=packages --chown=dify:dify ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-# Download nltk data
-RUN mkdir -p /usr/local/share/nltk_data \
-    && NLTK_DATA=/usr/local/share/nltk_data python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords')" \
+# Download NLTK data directly instead of relying on the remote package index.
+RUN mkdir -p /usr/local/share/nltk_data /tmp/nltk_data \
+    && for package in \
+        tokenizers/punkt.zip \
+        tokenizers/punkt_tab.zip \
+        taggers/averaged_perceptron_tagger.zip \
+        taggers/averaged_perceptron_tagger_eng.zip \
+        corpora/stopwords.zip; do \
+        downloaded=''; \
+        for base_url in \
+            https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages \
+            https://www.nltk.org/nltk_data/packages; do \
+            if curl -fsSL --retry 3 --retry-delay 2 "$base_url/$package" -o /tmp/nltk_data/package.zip; then \
+                NLTK_DATA=/usr/local/share/nltk_data NLTK_PACKAGE_PATH=/tmp/nltk_data/package.zip \
+                    python -c "import os, zipfile; zipfile.ZipFile(os.environ['NLTK_PACKAGE_PATH']).extractall(os.environ['NLTK_DATA'])"; \
+                downloaded=1; \
+                break; \
+            fi; \
+        done; \
+        if [ -z "$downloaded" ]; then \
+            echo "Failed to download NLTK package: $package" >&2; \
+            exit 1; \
+        fi; \
+    done \
+    && rm -rf /tmp/nltk_data \
     && chmod -R 755 /usr/local/share/nltk_data
 
 ENV TIKTOKEN_CACHE_DIR=/app/api/.tiktoken_cache

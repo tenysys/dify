@@ -1,9 +1,11 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 
 from constants import HEADER_NAME_ACCESS_TOKEN, HEADER_NAME_CSRF_TOKEN, HEADER_NAME_REFRESH_TOKEN
-from controllers.console.auth.auth_service import AuthServiceLoginApi
+from controllers.console.auth.auth_service import AuthServiceLoginApi, _load_target_workspace
+from controllers.console.auth.error import AuthServiceConfigurationError
 
 
 class TestAuthServiceLoginApi:
@@ -63,3 +65,46 @@ class TestAuthServiceLoginApi:
         assert response.headers[HEADER_NAME_ACCESS_TOKEN] == "Bearer access-token"
         assert response.headers[HEADER_NAME_REFRESH_TOKEN] == "refresh-token"
         assert response.headers[HEADER_NAME_CSRF_TOKEN] == "csrf-token"
+
+
+class TestLoadTargetWorkspace:
+    @patch("controllers.console.auth.auth_service.db")
+    def test_load_target_workspace_returns_existing_workspace_by_name(self, mock_db):
+        tenant = MagicMock()
+        mock_db.session.scalar.return_value = tenant
+
+        with (
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ID", None),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_NAME", "研发部门"),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE", "normal"),
+        ):
+            result = _load_target_workspace()
+
+        assert result is tenant
+        mock_db.session.scalar.assert_called_once()
+
+    @patch("controllers.console.auth.auth_service.TenantService.create_tenant")
+    @patch("controllers.console.auth.auth_service.db")
+    def test_load_target_workspace_creates_workspace_when_name_not_found(self, mock_db, mock_create_tenant):
+        tenant = MagicMock()
+        mock_db.session.scalar.return_value = None
+        mock_create_tenant.return_value = tenant
+
+        with (
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ID", None),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_NAME", "研发部门"),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE", "normal"),
+        ):
+            result = _load_target_workspace()
+
+        assert result is tenant
+        mock_create_tenant.assert_called_once_with("研发部门", is_setup=True)
+
+    def test_load_target_workspace_raises_when_id_and_name_are_both_missing(self):
+        with (
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ID", None),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_NAME", None),
+            patch("controllers.console.auth.auth_service.dify_config.AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE", "normal"),
+        ):
+            with pytest.raises(AuthServiceConfigurationError, match="workspace id or name"):
+                _load_target_workspace()

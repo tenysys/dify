@@ -38,6 +38,11 @@ class AuthServiceConfig(BaseSettings):
         default=None,
     )
 
+    AUTH_SERVICE_DEFAULT_WORKSPACE_NAME: str | None = Field(
+        description="Workspace name that first-time auth-service users will join or create when missing.",
+        default=None,
+    )
+
     AUTH_SERVICE_DEFAULT_WORKSPACE_ROLE: str = Field(
         description="Workspace role assigned to first-time auth-service users.",
         default="normal",
